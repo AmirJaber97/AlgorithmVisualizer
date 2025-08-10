@@ -88,7 +88,8 @@ class MergeSort {
       SortStep(
         array: List.from(array),
         comparingIndices: [],
-        swappingIndices: List.generate(right - left + 1, (i) => left + i),
+        swappingIndices: [],
+        mergingIndices: List.generate(right - left + 1, (i) => left + i),
         sortedIndices: [],
         description: 'Merged section from index $left to $right',
       ),

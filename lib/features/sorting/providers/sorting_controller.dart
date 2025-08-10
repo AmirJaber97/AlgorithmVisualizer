@@ -4,8 +4,11 @@ import 'dart:math';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../algorithms/bubble_sort.dart';
+import '../algorithms/heap_sort.dart';
+import '../algorithms/insertion_sort.dart';
 import '../algorithms/merge_sort.dart';
 import '../algorithms/quick_sort.dart';
+import '../algorithms/selection_sort.dart';
 import '../models/sort_algorithm.dart';
 import '../models/sort_element.dart';
 import '../models/sort_step.dart';
@@ -17,6 +20,7 @@ class SortingController extends StateNotifier<SortingState> {
   int _currentStepIndex = 0;
   double _currentSpeed = 0.5;
   SortAlgorithm _currentAlgorithm = SortAlgorithm.bubbleSort;
+  List<int> _originalValues = [];
 
   SortingController() : super(const SortingState()) {
     generateRandomArray(50);
@@ -31,6 +35,7 @@ class SortingController extends StateNotifier<SortingState> {
   void generateRandomArray(int size) {
     final random = Random();
     final values = List.generate(size, (index) => random.nextInt(100) + 1);
+    _originalValues = List.from(values);
     final elements = values.asMap().entries.map((entry) {
       return SortElement(value: entry.value, index: entry.key);
     }).toList();
@@ -42,6 +47,7 @@ class SortingController extends StateNotifier<SortingState> {
       totalComparisons: 0,
       totalSwaps: 0,
       highlightedIndices: [],
+      pivotIndex: null,
       currentOperation: 'Array generated',
     );
 
@@ -49,15 +55,15 @@ class SortingController extends StateNotifier<SortingState> {
   }
 
   void _generateSteps() {
-    final values = state.elements.map((e) => e.value).toList();
-
+    final values = List<int>.from(_originalValues);
     _steps = switch (_currentAlgorithm) {
       SortAlgorithm.bubbleSort => BubbleSort.generateSteps(values),
       SortAlgorithm.quickSort => QuickSort.generateSteps(values),
       SortAlgorithm.mergeSort => MergeSort.generateSteps(values),
-      SortAlgorithm.heapSort => BubbleSort.generateSteps(values),
+      SortAlgorithm.heapSort => HeapSort.generateSteps(values),
+      SortAlgorithm.insertionSort => InsertionSort.generateSteps(values),
+      SortAlgorithm.selectionSort => SelectionSort.generateSteps(values),
     };
-
     _currentStepIndex = 0;
   }
 
@@ -66,58 +72,56 @@ class SortingController extends StateNotifier<SortingState> {
       reset();
       return;
     }
-
     state = state.copyWith(isPlaying: true);
     _startAnimation();
   }
 
   void _startAnimation() {
     _timer?.cancel();
-
-    final delay = _calculateDelay(_currentSpeed);
-
-    _timer = Timer.periodic(Duration(milliseconds: delay), (timer) {
+    final delayMs = _calculateDelay(_currentSpeed);
+    _timer = Timer.periodic(Duration(milliseconds: delayMs), (timer) {
       if (_currentStepIndex >= _steps.length - 1) {
         pause();
         state = state.copyWith(isSorted: true);
         return;
       }
-
       _currentStepIndex++;
       _applyStep(_steps[_currentStepIndex]);
     });
   }
 
   int _calculateDelay(double speed) {
-    final normalizedSpeed = speed.clamp(0.0, 1.0);
-
-    if (normalizedSpeed < 0.5) {
-      return (2000 - (normalizedSpeed * 2 * 1500)).toInt();
+    final s = speed.clamp(0.0, 1.0);
+    if (s < 0.5) {
+      return (2000 - (s * 2 * 1500)).toInt();
     } else {
-      return (500 - ((normalizedSpeed - 0.5) * 2 * 450)).toInt();
+      return (500 - ((s - 0.5) * 2 * 450)).toInt();
     }
   }
 
   void _applyStep(SortStep step) {
-    final elements = step.array.asMap().entries.map((entry) {
-      final index = entry.key;
-      final value = entry.value;
+    final compSet = step.comparingIndices.toSet();
+    final swapSet = step.swappingIndices.toSet();
+    final mergeSet = step.mergingIndices.toSet();
+    final sortedSet = step.sortedIndices.toSet();
+    final pivotSet = step.pivotIndices.toSet();
 
+    final elements = step.array.asMap().entries.map((entry) {
+      final idx = entry.key;
+      final val = entry.value;
       return SortElement(
-        value: value,
-        index: index,
-        isComparing: step.comparingIndices.contains(index),
-        isSwapping: step.swappingIndices.contains(index),
-        isSorted: step.sortedIndices.contains(index),
-        isPivot: step.pivotIndex == index,
+        value: val,
+        index: idx,
+        isComparing: compSet.contains(idx),
+        isSwapping: swapSet.contains(idx),
+        isMerging: mergeSet.contains(idx),
+        isSorted: sortedSet.contains(idx) || step.isFinal,
+        isPivot: pivotSet.contains(idx),
       );
     }).toList();
 
-    int comparisons = state.totalComparisons;
-    int swaps = state.totalSwaps;
-
-    if (step.comparingIndices.isNotEmpty) comparisons++;
-    if (step.swappingIndices.isNotEmpty) swaps++;
+    var comparisons = state.totalComparisons + (compSet.isNotEmpty ? 1 : 0);
+    var swaps = state.totalSwaps + (swapSet.isNotEmpty ? 1 : 0);
 
     state = state.copyWith(
       elements: elements,
@@ -125,8 +129,8 @@ class SortingController extends StateNotifier<SortingState> {
       totalComparisons: comparisons,
       totalSwaps: swaps,
       currentOperation: step.description,
-      highlightedIndices: [...step.comparingIndices, ...step.swappingIndices],
-      pivotIndex: step.pivotIndex,
+      highlightedIndices: [...compSet, ...swapSet, ...mergeSet],
+      pivotIndex: pivotSet.isNotEmpty ? pivotSet.first : null,
     );
   }
 
@@ -141,44 +145,42 @@ class SortingController extends StateNotifier<SortingState> {
     if (_steps.isNotEmpty) {
       _applyStep(_steps[0]);
     }
-    state = state.copyWith(isPlaying: false, isSorted: false, currentStep: 0, totalComparisons: 0, totalSwaps: 0);
+    state = state.copyWith(
+      isPlaying: false,
+      isSorted: false,
+      currentStep: 0,
+      totalComparisons: 0,
+      totalSwaps: 0,
+      pivotIndex: null,
+      highlightedIndices: [],
+    );
   }
 
-  void shuffle() {
-    generateRandomArray(state.elements.length);
-  }
+  void shuffle() => generateRandomArray(state.elements.length);
 
   void stepForward() {
-    if (_currentStepIndex < _steps.length - 1) {
-      _currentStepIndex++;
-      _applyStep(_steps[_currentStepIndex]);
-    }
+    if (_currentStepIndex < _steps.length - 1) _applyStep(_steps[++_currentStepIndex]);
   }
 
   void stepBackward() {
-    if (_currentStepIndex > 0) {
-      _currentStepIndex--;
-      _applyStep(_steps[_currentStepIndex]);
-    }
+    if (_currentStepIndex > 0) _applyStep(_steps[--_currentStepIndex]);
   }
 
-  void setSpeed(double speed) {
-    _currentSpeed = speed;
-    if (state.isPlaying) {
-      _startAnimation();
-    }
+  void setSpeed(double s) {
+    _currentSpeed = s;
+    if (state.isPlaying) _startAnimation();
   }
 
-  void setArraySize(int size) {
+  void setArraySize(int s) {
     pause();
-    generateRandomArray(size);
+    generateRandomArray(s);
   }
 
-  void setAlgorithm(SortAlgorithm algorithm) {
+  void setAlgorithm(SortAlgorithm algo) {
     pause();
-    _currentAlgorithm = algorithm;
-    reset();
+    _currentAlgorithm = algo;
     _generateSteps();
+    reset();
   }
 
   int get totalSteps => _steps.length;

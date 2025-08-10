@@ -12,7 +12,6 @@ class AppColors {
   static const sorted = Color(0xFF10B981);
   static const pivot = Color(0xFF8B5CF6);
   static const searching = Color(0xFF3B82F6);
-  static const found = Color(0xFF10B981);
 
   // Pathfinding colors
   static const wall = Color(0xFF374151);
@@ -25,4 +24,11 @@ class AppColors {
   static const background = Color(0xFFF9FAFB);
   static const surface = Color(0xFFFFFFFF);
   static const border = Color(0xFFE5E7EB);
+
+  // ─── Sorting‐Visualizer Palette ───────────────────
+  /// Default bar color
+  static const defaultBar = primary;
+
+  /// Merging (merge‐sort) highlight
+  static const merging = searching;
 }

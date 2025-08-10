@@ -2,18 +2,20 @@ class SortStep {
   final List<int> array;
   final List<int> comparingIndices;
   final List<int> swappingIndices;
+  final List<int> mergingIndices;
   final List<int> sortedIndices;
-  final int? pivotIndex;
+  final List<int> pivotIndices;
   final String description;
   final bool isFinal;
 
-  const SortStep({
+  SortStep({
     required this.array,
-    required this.comparingIndices,
-    required this.swappingIndices,
-    required this.sortedIndices,
-    this.pivotIndex,
-    required this.description,
+    this.comparingIndices = const [],
+    this.swappingIndices = const [],
+    this.mergingIndices = const [],
+    this.sortedIndices = const [],
+    this.pivotIndices = const [],
+    this.description = '',
     this.isFinal = false,
   });
 }

@@ -6,15 +6,7 @@ class QuickSort {
     final array = List<int>.from(values);
 
     // Initial state
-    steps.add(
-      SortStep(
-        array: List.from(array),
-        comparingIndices: [],
-        swappingIndices: [],
-        sortedIndices: [],
-        description: 'Starting Quick Sort',
-      ),
-    );
+    steps.add(SortStep(array: List.from(array), description: 'Starting Quick Sort'));
 
     _quickSortHelper(array, 0, array.length - 1, steps, []);
 
@@ -22,8 +14,6 @@ class QuickSort {
     steps.add(
       SortStep(
         array: List.from(array),
-        comparingIndices: [],
-        swappingIndices: [],
         sortedIndices: List.generate(array.length, (i) => i),
         description: 'Array is sorted!',
         isFinal: true,
@@ -35,7 +25,7 @@ class QuickSort {
 
   static void _quickSortHelper(List<int> array, int low, int high, List<SortStep> steps, List<int> sortedIndices) {
     if (low < high) {
-      int pivotIndex = _partition(array, low, high, steps, sortedIndices);
+      final pivotIndex = _partition(array, low, high, steps, sortedIndices);
       sortedIndices.add(pivotIndex);
 
       _quickSortHelper(array, low, pivotIndex - 1, steps, sortedIndices);
@@ -44,50 +34,43 @@ class QuickSort {
   }
 
   static int _partition(List<int> array, int low, int high, List<SortStep> steps, List<int> sortedIndices) {
-    int pivot = array[high];
-    int i = low - 1;
+    final pivot = array[high];
+    var i = low - 1;
 
     // Show pivot selection
     steps.add(
       SortStep(
         array: List.from(array),
-        comparingIndices: [],
-        swappingIndices: [],
         sortedIndices: List.from(sortedIndices),
-        pivotIndex: high,
+        pivotIndices: [high],
         description: 'Pivot selected: $pivot',
       ),
     );
 
-    for (int j = low; j < high; j++) {
+    for (var j = low; j < high; j++) {
       // Comparing with pivot
       steps.add(
         SortStep(
           array: List.from(array),
           comparingIndices: [j, high],
-          swappingIndices: [],
           sortedIndices: List.from(sortedIndices),
-          pivotIndex: high,
+          pivotIndices: [high],
           description: 'Comparing ${array[j]} with pivot $pivot',
         ),
       );
 
       if (array[j] < pivot) {
         i++;
-        // Swap elements
-        int temp = array[i];
-        array[i] = array[j];
-        array[j] = temp;
+        array.swap(i, j);
 
         if (i != j) {
           steps.add(
             SortStep(
               array: List.from(array),
-              comparingIndices: [],
               swappingIndices: [i, j],
               sortedIndices: List.from(sortedIndices),
-              pivotIndex: high,
-              description: 'Swapping ${array[j]} and ${array[i]}',
+              pivotIndices: [high],
+              description: 'Swapping ${array[i]} and ${array[j]}',
             ),
           );
         }
@@ -96,21 +79,26 @@ class QuickSort {
 
     // Place pivot in correct position
     i++;
-    int temp = array[i];
-    array[i] = array[high];
-    array[high] = temp;
+    array.swap(i, high);
 
     steps.add(
       SortStep(
         array: List.from(array),
-        comparingIndices: [],
         swappingIndices: [i, high],
         sortedIndices: List.from(sortedIndices),
-        pivotIndex: i,
+        pivotIndices: [i],
         description: 'Pivot placed at position $i',
       ),
     );
 
     return i;
+  }
+}
+
+extension _ListSwap on List<int> {
+  void swap(int a, int b) {
+    final tmp = this[a];
+    this[a] = this[b];
+    this[b] = tmp;
   }
 }

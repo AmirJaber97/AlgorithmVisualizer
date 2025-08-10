@@ -9,6 +9,7 @@ class SortElement {
   final bool isSwapping;
   final bool isSorted;
   final bool isPivot;
+  final bool isMerging;
 
   const SortElement({
     required this.value,
@@ -17,9 +18,18 @@ class SortElement {
     this.isSwapping = false,
     this.isSorted = false,
     this.isPivot = false,
+    this.isMerging = false,
   });
 
-  SortElement copyWith({int? value, int? index, bool? isComparing, bool? isSwapping, bool? isSorted, bool? isPivot}) {
+  SortElement copyWith({
+    int? value,
+    int? index,
+    bool? isComparing,
+    bool? isSwapping,
+    bool? isSorted,
+    bool? isPivot,
+    bool? isMerging,
+  }) {
     return SortElement(
       value: value ?? this.value,
       index: index ?? this.index,
@@ -27,6 +37,7 @@ class SortElement {
       isSwapping: isSwapping ?? this.isSwapping,
       isSorted: isSorted ?? this.isSorted,
       isPivot: isPivot ?? this.isPivot,
+      isMerging: isMerging ?? this.isMerging,
     );
   }
 
@@ -35,6 +46,7 @@ class SortElement {
     if (isPivot) return AppColors.pivot;
     if (isSwapping) return AppColors.swapping;
     if (isComparing) return AppColors.comparing;
+    if (isMerging) return AppColors.searching;
     return AppColors.primary;
   }
 }
